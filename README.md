@@ -159,13 +159,24 @@ validation and harness maintenance expectations.
 
 ## Current State
 
-This repository is in Harness v0.
+This repository is in Harness v0, focused on building client applications for
+mobile (Android, iOS) and desktop (macOS, Linux, Windows).
 
-There is no application implementation and no baked-in product specification
-yet. The current work is the reusable project harness: the file structure,
-agent operating model, feature intake process, story templates, and validation
-expectations that help humans and agents turn a future user-provided spec into
-implementation work.
+The application stack is **locked** (scenario A: native mobile + KMP desktop):
+
+- **Mobile**: Native per platform — Android (Kotlin + Jetpack Compose + MVI +
+  multi-module + Hilt + KSP) + iOS (Swift + SwiftUI)
+- **Desktop**: Kotlin Multiplatform + Compose Multiplatform (macOS, Linux, Windows)
+
+See decisions:
+
+- `docs/decisions/0009-hybrid-mobile-desktop-split.md` (hybrid approach)
+- `docs/decisions/0010-mobile-stack.md` (accepted: native Kotlin/Swift)
+- `docs/decisions/0011-desktop-stack.md` (accepted: KMP + Compose)
+
+The project has **three codebases**: `android/`, `ios/`, `desktop-kmp/`. No
+application code exists yet. Real scaffolding (project files, build config,
+signing) lands with the first feature story that needs a runnable app.
 
 ## Product Sources
 

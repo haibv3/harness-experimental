@@ -1,71 +1,163 @@
 # Architecture
 
-No application stack is selected yet.
+This project is focused on building client applications for mobile and desktop:
 
-No application code exists yet. This document defines generic architecture
-questions and boundary rules that future implementation should adapt after a
-user-provided spec and stack decision exist.
+- Mobile: Android and iOS.
+- Desktop: macOS, Linux, and Windows.
+
+The application follows a **hybrid approach**: mobile and desktop use independent
+stacks optimized for their constraints. See:
+
+- `docs/decisions/0009-hybrid-mobile-desktop-split.md` (supersedes 0008)
+- `docs/decisions/0010-mobile-stack.md` (accepted: **native** — Android Kotlin/Compose/MVI + iOS Swift/SwiftUI)
+- `docs/decisions/0011-desktop-stack.md` (accepted: **KMP + Compose Multiplatform**)
+
+The project has **three codebases**:
+
+1. **Android** (native Kotlin, Jetpack Compose, MVI, multi-module, Hilt, KSP)
+2. **iOS** (native Swift, SwiftUI)
+3. **Desktop** (KMP + Compose Multiplatform for macOS/Linux/Windows)
+
+Business logic may be shared between Android and desktop via a KMP shared module.
+No application code exists yet. This document defines architecture questions and
+boundary rules for the chosen stacks. Real scaffolding (project files, build
+config, signing) lands with the first feature story that needs a runnable app.
+
+## Target Platforms
+
+| Surface | Platforms | Typical shell concerns |
+| --- | --- | --- |
+| Mobile | Android, iOS | App lifecycle, permissions, push, deep links, background limits, store review |
+| Desktop | macOS, Linux, Windows | Windowing, menus, file system, auto-update, code signing/notarization, packaging |
+
+Every product surface above shares product logic but has its own shell,
+packaging, signing, and release path. Treat shared logic as the inner layers and
+each platform shell as an outer surface.
 
 ## Discovery Before Shape
 
 Before proposing implementation shape, identify:
 
-- Product surfaces: browser, mobile, desktop, CLI, API, worker, or service.
-- Runtime stack: language, framework, database, queues, providers, and hosting.
+- Product surfaces in scope: which of the five target platforms this work
+  touches, and whether behavior must stay at parity across them.
+- Runtime stack: language, UI framework, local persistence, sync/backend,
+  providers, and packaging/distribution per platform.
 - Core domains: the product concepts that deserve stable names and contracts.
-- Boundary inputs: user input, API requests, webhooks, jobs, files, credentials,
-  provider payloads, and environment configuration.
-- Validation ladder: the smallest checks that can prove the selected stack.
+- Boundary inputs: user input, deep links and app links, OS intents/IPC, push
+  payloads, file imports, camera/sensor data, credentials and secure storage,
+  remote API responses, and per-platform configuration.
+- Offline and sync posture: what works offline, what is cached, and how
+  conflicts resolve when connectivity returns.
+- Validation ladder: the smallest checks that can prove shared logic plus the
+  platform behavior that cannot be proven in shared code.
 
-Record stack choices in `docs/decisions/` when they meaningfully constrain
-future work.
+Record stack and packaging choices in `docs/decisions/` when they meaningfully
+constrain future work.
 
-## Default Layering
+## Default Layering (Clean Architecture)
+
+All stacks (native, KMP, Flutter) follow Clean Architecture layering:
 
 ```text
 domain
   <- application
       <- infrastructure
-          <- interface
-              <- app surfaces
+          <- presentation
+              <- platform shells
 ```
 
-## Candidate Structure
+Inner layers hold product truth and must not depend on outer layers. Each
+platform shell stays as thin as the stack allows: lifecycle wiring, navigation
+host, permission prompts, packaging, and signing.
+
+## Project Structure (Native Mobile + KMP Desktop)
+
+The project has three codebases following Clean Architecture:
+
+### Android (Native Kotlin + Jetpack Compose + MVI)
 
 ```text
-app/
-  domain/
-    entities/
-    value-objects/
-    repositories/
-    services/
-
-  application/
-    commands/
-    queries/
-    handlers/
-
-  infrastructure/
-    database/
-    logging/
-    notifications/
-
-  interface/
-    controllers/
-    dto/
-    presenters/
-    routes/
-    middlewares/
-
-surfaces/
-  browser/
-  mobile/
-  desktop/
-  cli/
+android/
+  app/                      # App module (navigation host, DI setup)
+  feature/
+    feature-auth/           # Feature module: authentication (MVI)
+      src/main/kotlin/
+        ui/                 # Compose UI + MVI intent/model/view
+        domain/             # Feature-specific use cases
+        data/               # Feature-specific repositories
+    feature-dashboard/
+  core/
+    core-domain/            # Shared domain entities, use cases
+    core-data/              # Shared repositories, data sources
+    core-ui/                # Shared Compose components, theme, MVI base
+    core-network/           # API clients (Retrofit, Ktor, etc.)
+    core-database/          # Local persistence (Room, SQLDelight, etc.)
+  build.gradle.kts
+  libs.versions.toml        # Centralized dependency versions
 ```
 
-This is a thinking template, not a scaffold. Create real folders only when a
-story enters implementation and the selected stack needs them.
+**Stack**: Kotlin, Jetpack Compose, MVI, multi-module, Hilt (DI), Coroutines +
+Flow, KSP (not KAPT), Gradle Kotlin DSL.
+
+### iOS (Native Swift + SwiftUI)
+
+```text
+ios/
+  App/                      # App target (navigation, DI)
+  Features/
+    Auth/                   # Feature module: authentication
+    Dashboard/
+  Core/
+    Domain/                 # Shared domain entities, use cases
+    Data/                   # Shared repositories, data sources
+    UI/                     # Shared SwiftUI components, theme
+    Network/                # API clients
+    Database/               # Local persistence (CoreData, Realm, etc.)
+  App.xcodeproj
+```
+
+**Stack**: Swift, SwiftUI, async/await + Combine, manual DI or Swinject, Swift
+Package Manager.
+
+### Desktop (KMP + Compose Multiplatform)
+
+```text
+desktop-kmp/
+  shared/                   # KMP shared module
+    commonMain/kotlin/
+      domain/               # Shared domain (can reuse from Android if extracted)
+      application/          # Shared use cases
+      infrastructure/       # Shared data layer
+    desktopMain/kotlin/     # Desktop-specific adapters
+  desktop/                  # Compose Desktop app shell
+    src/main/kotlin/
+      ui/                   # Compose Desktop UI
+      Main.kt               # Desktop entry point
+  build.gradle.kts
+```
+
+**Stack**: Kotlin Multiplatform, Compose Multiplatform (JVM), Gradle Kotlin DSL.
+Can share a KMP `shared` module with Android for domain/application layers.
+
+This is a thinking template, not a scaffold. Create real folders, build config,
+and signing setup when the first feature story enters implementation.
+
+## Shared-vs-Platform Rule
+
+Keep behavior in the highest shared layer that can express it.
+
+| Concern | Default home | Notes |
+| --- | --- | --- |
+| Business rules, validation, entities | domain | Shared via KMP if mobile+desktop both use KMP; duplicated if stacks diverge |
+| Use cases, orchestration | application | Same as domain |
+| Local persistence, sync, secure storage | infrastructure | Stack-specific adapters; KMP can share interfaces |
+| Presentation state, navigation, deep-link mapping | presentation | Shared if UI stack is shared (KMP Compose or Flutter); separate if native |
+| Permission prompts, OS dialogs, lifecycle, packaging, signing | platform shell | Always platform-specific |
+
+Platform-specific code is justified only when the OS forces it (capability APIs,
+store rules, signing, native UX conventions). Duplicated business logic across
+shells is a defect, not parity. If mobile and desktop choose different stacks,
+consider a KMP shared module for domain/application to avoid full duplication.
 
 ## Dependency Rule
 
@@ -73,11 +165,11 @@ Inner layers must not depend on outer layers.
 
 | Layer | May depend on | Must not depend on |
 | --- | --- | --- |
-| domain | nothing project-external except tiny pure utilities | framework, database, UI, provider, process/env |
-| application | domain | framework, UI, provider, database concrete clients |
-| infrastructure | domain, application | interface controllers or UI |
-| interface | all backend layers | UI state or platform shell assumptions |
-| app surfaces | API contracts and app-facing clients | domain internals directly |
+| domain | nothing project-external except tiny pure utilities | framework, database, UI, provider, OS APIs, process/env |
+| application | domain | framework, UI, provider, persistence concrete clients |
+| infrastructure | domain, application | presentation state or platform shell assumptions |
+| presentation | domain, application contracts | concrete OS APIs, a single platform's shell |
+| platform shells | presentation, infrastructure adapters | domain internals directly |
 
 ## Parse-First Boundary Rule
 
@@ -85,13 +177,14 @@ Unknown data must be parsed at boundaries before it enters inner code.
 
 Boundaries include:
 
-- HTTP request bodies, params, and query strings.
-- Session payloads and identity claims.
-- Environment variables.
-- Database rows returned from external clients.
-- Platform shell payloads.
-- Deep links, tokens, and signed URLs.
-- Provider webhooks, events, and async payloads.
+- Remote API responses, params, and query strings.
+- Session payloads, identity claims, and tokens from secure storage.
+- Deep links, app links, universal links, and custom URL schemes.
+- OS intents, IPC messages, and inter-app share payloads.
+- Push notification and background-message payloads.
+- Imported files, clipboard data, camera/scanner, and sensor input.
+- Local database/cache rows and serialized persisted state.
+- Remote config, feature flags, and per-platform environment configuration.
 
 Target flow:
 
@@ -118,16 +211,27 @@ the code level even when the storage layer is simple:
 
 ## Observability Contract
 
-The future server should emit one canonical JSON log line per request with:
+Client apps observe sessions and events, not server requests. The app should
+emit structured client telemetry with a stable schema per event:
 
 - timestamp
 - level
-- request_id
-- user_id when known
-- action
-- duration_ms
-- status_code
+- session_id
+- user_id when known and consented
+- platform and app_version
+- screen or action
+- duration_ms when measuring a flow
+- outcome (success, error, cancelled)
 - message
 
-Audit logs are product records. Application logs are operational records. Do not
-use one as a substitute for the other.
+Additional client-app requirements:
+
+- Capture unhandled crashes and ANRs with a symbolicated report path.
+- Respect privacy and consent: no PII or secrets in telemetry; gate analytics
+  behind user consent where the platform or law requires it.
+- Distinguish product analytics (what users do) from operational diagnostics
+  (crashes, performance). Do not use one as a substitute for the other.
+- Telemetry must degrade gracefully offline and flush when connectivity returns.
+
+If a backend exists, the server keeps the canonical one-line-per-request log
+described for services; this contract covers the app client.

@@ -1,0 +1,6 @@
+# Ignore Gradle build artifacts
+.gradle/
+build/
+*.iml
+.idea/
+local.properties

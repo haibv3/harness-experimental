@@ -51,9 +51,10 @@ are welcome.
 
 1. Read `AGENTS.md`.
 2. Classify the work using `docs/FEATURE_INTAKE.md`.
-3. Keep changes focused and reviewable.
-4. Update related docs if you change a harness rule or template.
-5. Explain what proof shows the change is useful.
+3. Record your work in the durable layer using `scripts/bin/harness-cli` (see `docs/CLI.md` for usage).
+4. Keep changes focused and reviewable.
+5. Update related docs if you change a harness rule or template.
+6. Explain what proof shows the change is useful.
 
 ## Pull Request Checklist
 

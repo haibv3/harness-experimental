@@ -50,7 +50,7 @@ enum Command {
 }
 
 #[derive(Args, Debug)]
-#[command(after_help = RISK_LANE_HELP)]
+#[command(after_help = "Accepted lanes: tiny, normal, high-risk. Use tiny instead of low.\n\nAccepted intake types: harness_improvement, new_initiative, spec_slice, new_spec, change_request, maintenance.")]
 struct IntakeArgs {
     #[arg(long = "type")]
     input_type: String,
@@ -91,7 +91,7 @@ enum StoryAction {
     #[command(after_help = RISK_LANE_HELP)]
     Add(StoryAddArgs),
     #[command(
-        after_help = "Proof flags use numeric booleans: --unit 1 --integration 1 --e2e 0 --platform 0. Do not use yes/no."
+        after_help = "Proof flags use numeric booleans: --unit 1 --integration 1 --e2e 0 --platform 0. Do not use yes/no.\n\nAccepted status values: implemented."
     )]
     Update(StoryUpdateArgs),
     #[command(
@@ -147,6 +147,7 @@ struct DecisionArgs {
 
 #[derive(Subcommand, Debug)]
 enum DecisionAction {
+    #[command(after_help = "Accepted status values: proposed, accepted, superseded, rejected.")]
     Add(DecisionAddArgs),
     Verify { id: String },
 }
@@ -211,6 +212,7 @@ struct BacklogCloseArgs {
 }
 
 #[derive(Args, Debug)]
+#[command(after_help = "Accepted outcome values: completed.")]
 struct TraceArgs {
     #[arg(long)]
     summary: String,

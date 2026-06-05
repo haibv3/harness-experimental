@@ -23,11 +23,16 @@ implemented until tests or validation evidence exist.
 
 ## Evidence Rules
 
-- Unit proof covers pure domain and application rules.
-- Integration proof covers backend enforcement, data integrity, provider
-  behavior, jobs, or service contracts.
-- E2E proof covers user-visible browser flows.
-- Platform proof covers only shell, deployment, mobile, desktop, or runtime
-  behavior that cannot be proven in lower layers.
+- Unit proof covers pure domain and application rules in shared code.
+- Integration proof covers local persistence, sync/API clients, secure storage,
+  provider SDK behavior, and presentation/view-model contracts.
+- E2E proof covers user-visible app flows driven through the UI on at least one
+  target platform (for example Android instrumentation, iOS XCUITest, or a
+  desktop UI driver).
+- Platform proof covers shell, packaging, signing, OS permissions, deep links,
+  notifications, and per-platform behavior that cannot be proven in lower layers.
+  Note which platforms the proof actually ran on (Android, iOS, macOS, Linux,
+  Windows); untested platforms are unproven, not assumed at parity.
 - A story can be implemented without every proof column if the story packet
-  explains why.
+  explains why, but cross-platform behavior changes must state their platform
+  coverage explicitly.

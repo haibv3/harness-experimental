@@ -51,11 +51,12 @@ docs, stories, decisions, and initiative notes as the living surface.
 Use for low-risk docs, copy, names, or narrow edits.
 
 Also use for initial project setup when the work is limited to installing
-declared dependencies, wiring a server entrypoint, adding a health/smoke
-endpoint, or opening a local development database connection without creating
-domain schema, CRUD behavior, auth, authorization, provider integration, or
-data migration. A health endpoint in a new benchmark or scaffolded project is
-smoke proof, not a public contract escalation by itself.
+declared dependencies, wiring an app entrypoint, adding a single placeholder
+screen or smoke launch test, or opening a local development store connection
+without creating domain schema, persistence format, auth, authorization,
+provider integration, OS permission prompts, or data migration. A blank app that
+launches and shows one placeholder screen is smoke proof, not a public contract
+escalation by itself.
 
 Requirements:
 
@@ -99,13 +100,17 @@ Mark one flag for each item that applies:
 
 | Risk flag | Applies when the work touches |
 | --- | --- |
-| Auth | login, logout, sessions, JWT, password, refresh token |
+| Auth | login, logout, sessions, JWT, password, refresh token, biometric unlock |
 | Authorization | roles, permissions, tenant or company scope |
-| Data model | schema, migrations, uniqueness, deletion, retention |
-| Audit/security | audit logs, privacy, sensitive data, access logs |
-| External systems | email, payments, cloud services, provider SDKs, queues, webhooks |
-| Public contracts | API shape, response envelope, client-visible behavior |
-| Cross-platform | desktop/mobile/browser split, native shell behavior, deep links |
+| Data model | schema, migrations, local store format, uniqueness, deletion, retention |
+| Audit/security | audit logs, privacy, sensitive data, secure storage, access logs |
+| External systems | payments/IAP, cloud services, provider SDKs, push services, queues, webhooks |
+| Public contracts | API shape, response envelope, client-visible behavior, persisted data format |
+| Cross-platform | desktop/mobile split, native shell behavior, deep links, platform parity gaps |
+| OS permissions | camera, location, contacts, notifications, background, or other privacy-sensitive prompts |
+| Native capability | platform SDK, native module/plugin, hardware/sensor, file system, IPC |
+| Release/distribution | app signing, notarization, store submission, entitlements, auto-update, packaging |
+| Offline/sync | offline behavior, caching, background sync, or conflict resolution |
 | Existing behavior | already implemented or test-covered behavior changes |
 | Weak proof | unclear or missing tests around the affected area |
 | Multi-domain | more than one product domain changes at once |
@@ -130,9 +135,11 @@ Hard gates:
 
 - Auth.
 - Authorization.
-- Data loss or migration.
-- Audit/security.
-- External provider behavior.
+- Data loss or local-store migration.
+- Audit/security or secure storage of sensitive data.
+- External provider behavior, payments, or in-app purchase.
+- New privacy-sensitive OS permission or entitlement.
+- App signing, store submission, or release/distribution changes.
 - Removing or weakening validation requirements.
 
 ## Output
